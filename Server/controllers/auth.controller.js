@@ -1,11 +1,11 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResonse.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
-import { User } from "../models/users.model.js";
+import { User } from "../models/index.js";
 
 const register = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -72,13 +72,17 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const updateUserInfo = asyncHandler(async (req, res) => {
-  const id = req.user;
+  const id = req.user._id;
   const { fullName, password } = req.body;
   const profileImage = req.file;
   const user = await User.findById(id);
   if (fullName) user.fullName = fullName;
   if (password) user.password = password;
+
   if (profileImage) {
+    if (user.profileImage?.publicId) {
+      await deleteFromCloudinary(user.profileImage.publicId);
+    }
     const { secure_url: imageUrl, public_id: publicId } =
       await uploadOnCloudinary(profileImage.path);
     user.profileImage = {
@@ -101,14 +105,19 @@ const updateUserInfo = asyncHandler(async (req, res) => {
 });
 
 const deleteUser = asyncHandler(async (req, res) => {
-  const id = req.user;
+  const id = req.user.id;
 
-  const user = await User.findByIdAndDelete(id);
+  const user = await User.findById(id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  await user.remove();
   if (user?.profileImage?.publicId) {
     await deleteFromCloudinary(user.profileImage.publicId);
   }
   res
     .status(200)
-    .json(new ApiResponse(200, user, "Account deleted successfully"));
+    .json(new ApiResponse(200, null, "Account deleted successfully"));
 });
 export { register, login, updateUserInfo, deleteUser };

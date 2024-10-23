@@ -4,12 +4,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const verifyJWT = asyncHandler((req, res, next) => {
   const incomingToken = req.headers?.authorization?.split(" ")[1];
-  if (!incomingToken) throw new ApiError(400, "Token is missing");
+  if (!incomingToken)
+    throw new ApiError(401, "Access Denied. No token provided");
 
   const decodedToken = jwt.verify(incomingToken, process.env.AUTH_TOKEN);
-  if (!decodedToken) throw new ApiError(500, "Jwt token expired");
-
-  req.user = decodedToken.id;
+  req.user = decodedToken;
   next();
 });
 

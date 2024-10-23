@@ -18,14 +18,18 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
     profileImage: {
-      publicId: { type: String },
-      imageUrl: { type: String },
+      publicId: String,
+      imageUrl: String,
     },
     role: {
       type: String,
       enum: ["ADMIN", "USER", "SERVICE_PROVIDER"],
       required: true,
       default: "USER",
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
@@ -47,9 +51,13 @@ userSchema.methods.comparePassword = function (plaintextPassword) {
   return bcrypt.compareSync(plaintextPassword, this.password);
 };
 userSchema.methods.generateAuthToken = function () {
-  const token = jwt.sign({ id: this._id }, process.env.AUTH_TOKEN, {
-    expiresIn: "10d",
-  });
+  const token = jwt.sign(
+    { _id: this._id, role: this.role },
+    process.env.AUTH_TOKEN,
+    {
+      expiresIn: "10d",
+    }
+  );
   return token;
 };
 
